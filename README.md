@@ -49,10 +49,42 @@ npm run build      # production build to dist/
 npm run preview    # serve the built dist/ locally
 ```
 
-## Test
+## Testing
+
+**Prerequisites:** Node.js 20.19+ or 22.12+ and npm, then `npm ci` (see [Install](#install)). There are no environment variables, API keys or services to set up, and no browser is needed: component tests run in jsdom.
+
+**1. Setup check (about 1 s).** Run this first after cloning:
 
 ```bash
-npm test           # Vitest (unit + component tests)
+npm run test:setup
+```
+
+It runs `tests/setup-check/` in plain Node and proves the pieces are hooked together:
+
+| Check | What it proves |
+| --- | --- |
+| Toolchain | Node is a version Vite 8 supports, and every dependency in `package.json` is installed at a matching version (a failure tells you to run `npm ci`). |
+| Data and map | `data/*.json` and `agent-reference.json` load, the Drill Hall map resolves with spawns in bounds, the playable agents are in the catalog, and a scenario survives JSON export and import. |
+| Live-round engine | A short scripted 2v2 round (attackers walk into the defenders' room) runs headlessly to a valid result with one `round-ended` event and time-ordered events. The same seed gives the same events, and replaying the order log gives the same final world and result. |
+
+**2. Full suite (about 15-20 s).** One command runs every test:
+
+```bash
+npm test
+```
+
+| Folder | What it covers |
+| --- | --- |
+| `tests/sim/` | Engine: clock, RNG, geometry and line of sight, combat, abilities, the live runner, pre-round plans, replays, plus golden and characterization tests against `tests/fixtures/`. |
+| `tests/ui/` | React components and the host loop in jsdom, including DOM golden snapshots. |
+| `tests/data/` | The agent reference and primitive-stage data files. |
+| `tests/architecture*.test.ts` | `src/sim/` stays free of React and UI imports; registries stay consistent. |
+
+Fixtures under `tests/fixtures/` are committed reference captures. Don't regenerate them to make a failing test pass: `h0-golden/` and `window-parity/` are frozen, and `characterization/` is only re-captured on purpose with `VALSIM_UPDATE_FIXTURES=1`.
+
+**Other gates:**
+
+```bash
 npm run lint       # ESLint
 npm run typecheck  # tsc --noEmit
 npm run check      # lint, typecheck, test and build in one go
